@@ -1,0 +1,78 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>Metro Fleet Mobility MIS Dashboard</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#f4f6f9;--card:#fff;--tx:#1b2430;--mu:#6b7686;--bd:#e2e7ee;--ac:#0f6e56;--rd:#c0392b;--bl:#2563eb}
+:root[data-theme=dark]{--bg:#12171d;--card:#1b222b;--tx:#e8edf3;--mu:#97a3b3;--bd:#2b3541;--ac:#34c79b;--rd:#ff7a6b;--bl:#6ea0ff}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#12171d;--card:#1b222b;--tx:#e8edf3;--mu:#97a3b3;--bd:#2b3541;--ac:#34c79b;--rd:#ff7a6b;--bl:#6ea0ff}}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;background:var(--bg);color:var(--tx);font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+header{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;padding:14px 20px;background:var(--card);border-bottom:1px solid var(--bd);position:sticky;top:env(safe-area-inset-top,0px);z-index:5}
+h1{font-size:18px;margin:0}h1 small{display:block;font-size:11px;font-weight:400;color:var(--mu)}h2{font-size:15px;margin:0 0 10px}
+.f{display:flex;flex-wrap:wrap;gap:8px}select,button,label.b{background:var(--bg);color:var(--tx);border:1px solid var(--bd);border-radius:8px;padding:6px 10px;font-size:13px;cursor:pointer}
+main{max-width:1280px;margin:0 auto;padding:16px}.g{display:grid;gap:12px;margin-bottom:12px}.k{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}.c2{grid-template-columns:repeat(auto-fit,minmax(340px,1fr))}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:14px;min-width:0}.kv{font-size:22px;font-weight:650}.kl{color:var(--mu);font-size:12px}.ks{font-size:12px}
+.up{color:var(--ac)}.dn{color:var(--rd)}.ins li{margin:5px 0}.w{overflow-x:auto}table{border-collapse:collapse;width:100%;font-size:13px}th,td{padding:6px 8px;text-align:right;border-bottom:1px solid var(--bd);white-space:nowrap}th:first-child,td:first-child{text-align:left}th{color:var(--mu);font-weight:600;font-size:12px}tr.t td{font-weight:650;background:var(--bg)}
+canvas{max-height:300px}.tag{background:var(--rd);color:#fff;border-radius:6px;padding:0 6px;font-size:11px}.n{font-size:12px;color:var(--mu);margin:8px 0}
+</style></head><body>
+<header><h1>Metro Fleet Mobility · MIS Dashboard<small>FY 2026-27 · Pan-India · ETS / LTC / RAC · Illustrative data — upload your CSV to go live</small></h1>
+<div class="f"><select id="fm"></select><select id="fs"></select><select id="fo"></select><select id="fc"></select>
+<label class="b">⬆ Upload CSV<input id="up" type="file" accept=".csv" hidden></label><button id="th">◐</button></div></header>
+<main>
+<div class="g k" id="kpi"></div>
+<div class="card" style="margin-bottom:12px"><h2>Auto-generated management insights</h2><ul class="ins" id="ins"></ul></div>
+<div class="g c2"><div class="card"><h2>Monthly Revenue, Gross Profit &amp; PAT (₹ Cr)</h2><canvas id="ch1"></canvas></div><div class="card"><h2>Revenue mix by segment</h2><canvas id="ch2"></canvas></div></div>
+<div class="card w" style="margin-bottom:12px"><h2>Profit &amp; Loss — Actual vs Budget</h2><table id="pl"></table></div>
+<div class="g c2"><div class="card"><h2>Profit % by city</h2><canvas id="ch3"></canvas></div><div class="card"><h2>Owned vs Hired — margin per ₹100 revenue</h2><canvas id="ch4"></canvas></div></div>
+<div class="g c2"><div class="card w"><h2>Customer profitability — top 8 &amp; loss-making</h2><table id="cu"></table></div><div class="card w"><h2>Vendor analysis (hired fleet)</h2><table id="ve"></table></div></div>
+<div class="g c2"><div class="card w"><h2>Vehicle type performance</h2><table id="vt"></table></div><div class="card w"><h2>City scorecard</h2><table id="ci"></table></div></div>
+<p class="n">Budget column is illustrative (set as % of actual). To use real data, upload a CSV with columns: m (0=Apr … 11=Mar), seg, cust, city, own (Owned/Hired), vt, vend, rev, fuel, drv, ven, mnt, dep, adm, km, duties, util (0–1). Everything recalculates automatically — refresh monthly by uploading the new export.</p>
+</main>
+<script>
+const MN=['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar'];
+let D=[],CH={};
+function rng(s){return()=>(s=(s*16807)%2147483647)/2147483647}
+function gen(){const r=rng(42),P=a=>a[Math.floor(r()*a.length)];
+const cities=['Bengaluru','Hyderabad','Pune','Chennai','Mumbai','Delhi NCR','Kolkata','Ahmedabad'],vts=['Sedan','SUV','Innova Crysta','EV','Tempo Traveller'],vens=['Vendor Alpha','Vendor Beta','Vendor Gamma','Vendor Delta','Vendor Echo'];
+const cu=[];for(let i=1;i<=24;i++)cu.push({n:'Client '+String.fromCharCode(64+i),w:i<6?3:1+r()*1.5,f:i>19?-0.22-r()*.1:i==9||i==14?-0.08:r()*.08-0.01,seg:P(['ETS','ETS','ETS','LTC','RAC'])});
+const cm={Bengaluru:1.15,Pune:1,Hyderabad:1.05,Chennai:.98,Mumbai:1.1,'Delhi NCR':1,Kolkata:1.04,Ahmedabad:.97};
+cu.forEach(c=>{for(let m=0;m<6;m++)for(let k=0;k<2;k++){const city=P(cities);['Owned','Hired'].forEach(o=>{const base=c.w*(1+m*.012)*(.8+r()*.4)*(o=='Owned'?1.25:1);const r0=base,rev=r0*(1+c.f);
+const ow=o=='Owned',cf=cm[city]+r()*.04;const row={m,seg:c.seg,cust:c.n,city,own:o,vt:ow?P(vts):P(vts.slice(0,3)),vend:ow?'—':P(vens),rev,fuel:ow?r0*.28*cf:0,drv:ow?r0*.16:0,ven:ow?0:r0*(.67+r()*.05)*cf,mnt:ow?r0*.08:0,dep:ow?r0*.10:0,adm:rev*.09,km:r0*3200,duties:r0*95,util:ow?.5+r()*.4:.9}; D.push(row)})}});
+const tot=D.reduce((a,x)=>a+x.rev,0),s=75e7/tot;D.forEach(x=>{['rev','fuel','drv','ven','mnt','dep','adm'].forEach(k=>x[k]*=s);x.km=Math.round(x.rev/27);x.duties=Math.round(x.rev/2300)})}
+const num=['m','rev','fuel','drv','ven','mnt','dep','adm','km','duties','util'];
+const sum=(a,k)=>a.reduce((t,x)=>t+(+x[k]||0),0),np=x=>x.rev-x.fuel-x.drv-x.ven-x.mnt-x.dep-x.adm;
+const cr=v=>'₹'+(v/1e7).toFixed(2)+' Cr',lk=v=>(v/1e5).toFixed(1)+' L',pc=v=>isFinite(v)?(v*100).toFixed(1)+'%':'–';
+const cl=v=>v<0?'dn':'';
+function grp(a,k){const m={};a.forEach(x=>{const g=m[x[k]]??=[];g.push(x)});return Object.entries(m).map(([n,r])=>{const rev=sum(r,'rev'),dc=sum(r,'fuel')+sum(r,'drv')+sum(r,'ven')+sum(r,'mnt'),p=r.reduce((t,x)=>t+np(x),0);return{n,rev,gp:rev-dc,np:p,pm:p/rev,km:sum(r,'km'),du:sum(r,'duties'),ut:sum(r,'util')/r.length,cnt:r.length}})}
+function tb(el,h,rows){document.getElementById(el).innerHTML='<tr>'+h.map(x=>'<th>'+x+'</th>').join('')+'</tr>'+rows.map(r=>'<tr'+(r.t?' class="t"':'')+'>'+r.c.map(x=>'<td>'+x+'</td>').join('')+'</tr>').join('')}
+function mk(id,cfg){CH[id]?.destroy();const cs=getComputedStyle(document.documentElement),tx=cs.getPropertyValue('--mu');Chart.defaults.color=tx;Chart.defaults.borderColor=cs.getPropertyValue('--bd');cfg.options={responsive:true,maintainAspectRatio:true,...cfg.options};CH[id]=new Chart(document.getElementById(id),cfg)}
+function filt(){const g=id=>document.getElementById(id).value;return D.filter(x=>(g('fm')=='All'||x.m==g('fm'))&&(g('fs')=='All'||x.seg==g('fs'))&&(g('fo')=='All'||x.own==g('fo'))&&(g('fc')=='All'||x.city==g('fc')))}
+function render(){const a=filt(),rev=sum(a,'rev'),fuel=sum(a,'fuel'),drv=sum(a,'drv'),ven=sum(a,'ven'),mnt=sum(a,'mnt'),dep=sum(a,'dep'),adm=sum(a,'adm'),gp=rev-fuel-drv-ven-mnt,eb=gp-adm,pbt=eb-dep,pat=pbt*.75;
+const cust=grp(a,'cust'),loss=cust.filter(c=>c.np<0),own=grp(a,'own'),city=grp(a,'city'),ven_=grp(a.filter(x=>x.own=='Hired'),'vend'),seg=grp(a,'seg');
+const K=[['Revenue',cr(rev),'Run-rate '+cr(rev/(new Set(a.map(x=>x.m)).size||1)*12)],['Gross Profit',cr(gp),pc(gp/rev)+' margin'],['EBITDA',cr(eb),pc(eb/rev)],['PAT',cr(pat),pc(pat/rev)+(pat/rev>=.15&&pat/rev<=.18?' · in 15–18% target':' · target 15–18%')],['Total Duties',Math.round(sum(a,'duties')).toLocaleString('en-IN'),'Km '+(sum(a,'km')/1e5).toFixed(1)+' L'],['Loss-making clients',loss.length+' / '+cust.length,'Loss '+cr(loss.reduce((t,c)=>t+c.np,0))],['Owned fleet util.',pc(sum(a.filter(x=>x.own=='Owned'),'util')/(a.filter(x=>x.own=='Owned').length||1)),'Idle '+pc(1-sum(a.filter(x=>x.own=='Owned'),'util')/(a.filter(x=>x.own=='Owned').length||1))]];
+kpi.innerHTML=K.map(k=>`<div class="card"><div class="kl">${k[0]}</div><div class="kv">${k[1]}</div><div class="ks kl">${k[2]}</div></div>`).join('');
+const o=Object.fromEntries(own.map(x=>[x.n,x])),wc=city.slice().sort((x,y)=>x.pm-y.pm)[0],bc=city.slice().sort((x,y)=>y.pm-x.pm)[0],wv=ven_.slice().sort((x,y)=>x.pm-y.pm)[0];
+const I=[];if(loss.length)I.push(`<b>${loss.length} clients are loss-making</b> (${cr(loss.reduce((t,c)=>t+c.np,0))} net loss): ${loss.sort((x,y)=>x.np-y.np).slice(0,3).map(c=>c.n).join(', ')} are the worst — review pricing or exit.`);
+if(o.Owned&&o.Hired)I.push(`Owned fleet earns <b>${pc(o.Owned.pm)}</b> net vs <b>${pc(o.Hired.pm)}</b> on hired. Allocating duties to hired vehicles while owned cars sit idle under-recovers fixed cost.`);
+if(wc)I.push(`Weakest city: <b>${wc.n}</b> (${pc(wc.pm)} net); strongest: <b>${bc.n}</b> (${pc(bc.pm)}).`);
+if(wv)I.push(`Hired vendor with lowest margin: <b>${wv.n}</b> (${pc(wv.pm)}) — renegotiate payout rates.`);
+I.push(`PAT margin is <b>${pc(pat/rev)}</b> against a 15–18% target — ${pat/rev<.15?'<span class=dn>below target</span>':'on track'}.`);ins.innerHTML=I.map(x=>'<li>'+x+'</li>').join('');
+const ms=[...new Set(D.map(x=>x.m))].sort((x,y)=>x-y),mm=ms.map(m=>{const r=D.filter(x=>x.m==m&&(fs.value=='All'||x.seg==fs.value)&&(fo.value=='All'||x.own==fo.value)&&(fc.value=='All'||x.city==fc.value));const rv=sum(r,'rev');return{rv,gp:rv-sum(r,'fuel')-sum(r,'drv')-sum(r,'ven')-sum(r,'mnt'),pt:r.reduce((t,x)=>t+np(x),0)*.75}});
+mk('ch1',{type:'bar',data:{labels:ms.map(m=>MN[m]),datasets:[{label:'Revenue',data:mm.map(x=>x.rv/1e7),backgroundColor:'#2563eb'},{label:'Gross Profit',data:mm.map(x=>x.gp/1e7),backgroundColor:'#0f9d7a'},{type:'line',label:'PAT',data:mm.map(x=>x.pt/1e7),borderColor:'#e67e22',tension:.3}]}});
+mk('ch2',{type:'doughnut',data:{labels:seg.map(x=>x.n),datasets:[{data:seg.map(x=>x.rev/1e7),backgroundColor:['#2563eb','#0f9d7a','#e67e22']}]}});
+mk('ch3',{type:'bar',data:{labels:city.map(x=>x.n),datasets:[{label:'Net profit %',data:city.map(x=>x.pm*100),backgroundColor:city.map(x=>x.pm<0?'#c0392b':'#0f9d7a')}]},options:{indexAxis:'y',plugins:{legend:{display:false}}}});
+const pr=x=>x?[100,x.gp/x.rev*100,x.pm*100]:[0,0,0];mk('ch4',{type:'bar',data:{labels:['Revenue','Gross profit','Net profit'],datasets:[{label:'Owned',data:pr(o.Owned),backgroundColor:'#0f9d7a'},{label:'Hired',data:pr(o.Hired),backgroundColor:'#e67e22'}]}});
+const L=[['Revenue',rev,1.0,0],['Direct cost – fuel',-fuel,0,1],['Direct cost – chauffeur',-drv,0,1],['Direct cost – vendor payout',-ven,0,1],['Direct cost – maintenance',-mnt,0,1],['Gross Profit',gp,.96,0,1],['Admin overheads',-adm,0,1],['EBITDA',eb,.95,0,1],['Depreciation & finance cost',-dep,0,1],['PBT',pbt,.94,0,1],['Tax @25%',-pbt*.25,0,1],['PAT',pat,.93,0,1]];
+const bd={Revenue:.97,'Gross Profit':.96,EBITDA:.95,PBT:.94,PAT:.93};
+tb('pl',['Particulars','Actual (₹ Cr)','% of Rev','Budget (₹ Cr)','Var %'],L.map(l=>{const b=bd[l[0]]?l[1]/ (bd[l[0]]>1?1:bd[l[0]]):null;return{t:l[4]||l[0]=='Revenue',c:[l[0],`<span class="${cl(l[1])}">${(l[1]/1e7).toFixed(2)}</span>`,pc(l[1]/rev),b?(b/1e7).toFixed(2):'–',b?`<span class="${l[1]>=b?'up':'dn'}">${((l[1]/b-1)*100).toFixed(1)}%</span>`:'–']}}));
+const cs=cust.slice().sort((x,y)=>y.np-x.np),sh=[...cs.slice(0,8),...cs.filter(c=>c.np<0&&!cs.slice(0,8).includes(c))];
+tb('cu',['Customer','Rev (₹L)','Net (₹L)','NP %',''],sh.map(c=>({c:[c.n,lk(c.rev).replace(' L',''),`<span class="${cl(c.np)}">${lk(c.np).replace(' L','')}</span>`,pc(c.pm),c.np<0?'<span class="tag">LOSS</span>':'']})));
+tb('ve',['Vendor','Payout (₹L)','Rev (₹L)','Net %'],ven_.sort((x,y)=>y.rev-x.rev).map(v=>({c:[v.n,lk(v.rev-v.gp).replace(' L',''),lk(v.rev).replace(' L',''),`<span class="${cl(v.pm)}">${pc(v.pm)}</span>`]})));
+tb('vt',['Vehicle type','Rev (₹L)','GP %','Net %','Rev/Km'],grp(a,'vt').sort((x,y)=>y.rev-x.rev).map(v=>({c:[v.n,lk(v.rev).replace(' L',''),pc(v.gp/v.rev),`<span class="${cl(v.pm)}">${pc(v.pm)}</span>`,'₹'+(v.rev/v.km).toFixed(1)]})));
+tb('ci',['City','Rev (₹L)','GP %','Net %','Owned util.'],city.sort((x,y)=>y.rev-x.rev).map(v=>{const ow=a.filter(x=>x.city==v.n&&x.own=='Owned');return{c:[v.n,lk(v.rev).replace(' L',''),pc(v.gp/v.rev),`<span class="${cl(v.pm)}">${pc(v.pm)}</span>`,pc(sum(ow,'util')/(ow.length||1))]}}))}
+function init(){const opt=(el,l,v)=>{el.innerHTML='<option value="All">'+l+'</option>'+v.map(x=>`<option value="${x[0]}">${x[1]}</option>`).join('')};
+opt(fm,'All months',[...new Set(D.map(x=>x.m))].sort((a,b)=>a-b).map(m=>[m,MN[m]]));opt(fs,'All segments',['ETS','LTC','RAC'].map(x=>[x,x]));opt(fo,'Owned + Hired',['Owned','Hired'].map(x=>[x,x]));opt(fc,'All cities',[...new Set(D.map(x=>x.city))].sort().map(x=>[x,x]));render()}
+document.querySelectorAll('select').forEach(s=>s.onchange=render);
+th.onclick=()=>{const d=document.documentElement,dk=getComputedStyle(d).getPropertyValue('--bg').trim()=='#12171d';d.dataset.theme=dk?'light':'dark';render()};
+up.onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{const [h,...ln]=rd.result.trim().split(/\r?\n/),H=h.split(',').map(s=>s.trim());const R=ln.map(l=>{const c=l.split(','),o={};H.forEach((k,i)=>o[k]=num.includes(k)||['fuel','drv','ven','mnt','dep','adm','km','duties'].includes(k)?+c[i]||0:c[i]?.trim());return o});if(R.length&&R[0].rev!==undefined){D=R;init()}else alert('CSV needs a header row with columns: m,seg,cust,city,own,vt,vend,rev,fuel,drv,ven,mnt,dep,adm,km,duties,util')};rd.readAsText(f)};
+gen();init();
+</script></body></html>
