@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Integrated Financial Model v2 - Schedule III statements, CMA data, DCF, BVA</title>
+<style>
+:root{--ink:#0f1b2d;--mut:#5b6677;--line:#dde3ea;--bg:#f5f7fa;--acc:#0e7c7b;--bad:#b3261e;--good:#1b7f3b}
+*{box-sizing:border-box}body{margin:0;font:14px/1.45 "Segoe UI",Arial,sans-serif;color:var(--ink);background:var(--bg)}
+header{background:var(--ink);color:#fff;padding:12px 20px;display:flex;flex-wrap:wrap;gap:12px 24px;align-items:center}
+header h1{font:600 18px Georgia,serif;margin:0 auto 0 0}
+.k{display:flex;flex-direction:column;font-size:12px;color:#aab6c8}.k b{font-size:16px;color:#fff;font-variant-numeric:tabular-nums}
+header label{color:#aab6c8}header select{min-width:0}
+nav{display:flex;gap:4px;padding:10px 20px 0;border-bottom:1px solid var(--line);background:#fff;overflow-x:auto}
+nav button{border:0;background:none;padding:10px 14px;font:inherit;color:var(--mut);cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap}
+nav button[aria-selected=true]{color:var(--ink);font-weight:600;border-color:var(--acc)}
+button:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--acc);outline-offset:1px}
+main{padding:20px;max-width:1150px;margin:0 auto}section{display:none}section.on{display:block}
+h2{font:600 17px Georgia,serif;margin:24px 0 8px}h2:first-child{margin-top:0}h3{margin:2px 0 4px;font-size:13px}
+p.n{color:var(--mut);margin:4px 0 12px;font-size:13px;max-width:80ch}
+.w{overflow-x:auto;background:#fff;border:1px solid var(--line);border-radius:6px}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+th,td{padding:5px 10px;text-align:right;border-bottom:1px solid #eef1f5;white-space:nowrap}
+th:first-child,td:first-child{text-align:left;position:sticky;left:0;background:#fff;white-space:normal;min-width:210px}
+th{background:#eef2f6;font-weight:600}tr.b td{font-weight:600;border-top:1px solid var(--line)}tr.h td{background:#f7f9fb;font-weight:600;color:var(--mut)}
+td input{width:66px;padding:3px 5px;font:inherit;text-align:right;border:1px solid var(--line);border-radius:4px;color:#0a3fc2;background:#fffbe6}
+.row{display:flex;flex-wrap:wrap;gap:12px;align-items:end;margin-bottom:12px}
+label{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--mut)}
+label input,label select,select,textarea{font:inherit;padding:5px 7px;border:1px solid var(--line);border-radius:4px;min-width:90px;background:#fffbe6;color:#0a3fc2}
+textarea{width:100%;min-height:70px;font:12px Consolas,monospace}
+button.a{font:inherit;padding:5px 12px;border:1px solid var(--acc);background:#fff;color:var(--acc);border-radius:4px;cursor:pointer}
+.g2{display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:16px}
+.ch{background:#fff;border:1px solid var(--line);border-radius:6px;padding:8px 10px}
+svg{width:100%;height:auto;font:10px "Segoe UI",Arial,sans-serif;fill:#3c4757}
+.good{color:var(--good)}.bad{color:var(--bad)}.hl{background:#fff4d6}
+.lg{font-size:12px;color:var(--mut);margin:2px 0 0}.lg i{display:inline-block;width:10px;height:10px;margin:0 4px 0 10px;vertical-align:-1px}
+@media(max-width:480px){.g2{grid-template-columns:1fr}main{padding:12px}}
+@media print{nav,header .row,.row,textarea,button{display:none}section{display:block!important;page-break-after:always}}
+</style></head><body>
+<header><h1>Integrated Financial Model v2</h1>
+<label>Reporting framework<select id="fw"><option value="IndAS">Ind AS (Sch. III Div II)</option><option value="AS">AS (Sch. III Div I)</option></select></label>
+<label>Scenario<select id="sc"><option>Base</option><option>Upside</option><option>Downside</option></select></label>
+<div class="k">EV (Rs Cr)<b id="kEV"></b></div><div class="k">Equity / share (Rs)<b id="kPS"></b></div><div class="k">WACC<b id="kW"></b></div><div class="k">Min DSCR<b id="kD"></b></div><div class="k">Balance sheet<b id="kC"></b></div>
+<button class="a" id="bSave">Save</button><button class="a" id="bReset">Reset</button><button class="a" onclick="print()">Print / PDF</button></header>
+<nav role="tablist" id="nav"></nav>
+<main>
+<section id="s0"><h2>Operating and financing drivers</h2><p class="n">Illustrative sample data, Rs Crore, April-March year. Blue-on-yellow cells are inputs; every tab recalculates as you type. Save keeps your inputs in this browser.</p>
+<div class="w"><table id="aT"></table></div><h2>Scenario, framework and valuation inputs</h2><div class="row" id="vI"></div>
+<p class="n">Opening FY2025A balances are in the <code>OPEN</code> constant of the script. Under Ind AS the opening balance sheet adds a right-of-use asset and lease liability of Rs 40 Cr each (no equity effect); under AS lease rent stays in other expenses. Other-expense % includes lease rent; Ind AS removes it from opex and shows depreciation and interest instead.</p></section>
+<section id="s1"><h2 id="tIS"></h2><div class="w" id="isT"></div><h2 id="tBS"></h2><div class="w" id="bsT"></div><h2 id="tCF"></h2><div class="w" id="cfT"></div>
+<p class="n">Cash flow follows the indirect method of AS 3 / Ind AS 7 (interest paid and dividends in financing, interest received in investing). Deferred tax follows AS 22 / Ind AS 12 (timing difference between tax and book depreciation). Under Ind AS, receivables carry an expected credit loss provision (Ind AS 109) and leases follow Ind AS 116. Working-capital borrowings act as a revolver: they draw when cash would fall below the minimum cash balance and repay from surplus. Interest can use average balances (iterated, no circular formulas).</p></section>
+<section id="s2"><h2>CMA Form II - Operating statement</h2><div class="w" id="f2"></div><h2>CMA Form III - Analysis of balance sheet</h2><div class="w" id="f3"></div>
+<h2>CMA Form IV and V - Comparative statement of current assets / liabilities and MPBF</h2><div class="w" id="f4"></div><h2>CMA Form VI - Funds flow statement</h2><div class="w" id="f6"></div>
+<h2>Key bank ratios</h2><div class="w" id="rT"></div>
+<p class="n">Format follows the CMA data (Forms II-VI) used by Indian banks under the Tandon / Chore / Nayak Committee recommendations, with line items drawn from Schedule III heads. Banks often issue their own CMA template, and Form I (existing and proposed limits) needs your sanction details, so it is not generated. Current maturities of term loans are shown in current liabilities. Deferred tax liability is shown under term liabilities. Ratio colours test against common indicative norms (current ratio 1.33, TOL/TNW 3.0, DSCR 1.25, interest cover 2.0), which differ by bank and industry. Audited FY2025A is sample data; confirm treatment with your bank and the applicable standards before submission.</p></section>
+<section id="s3"><h2>Unlevered free cash flow</h2><div class="w" id="dT"></div>
+<div class="g2"><div><h2>Valuation</h2><div class="w" id="vT"></div></div><div><h2>EV: WACC against terminal growth</h2><div class="w" id="sT"></div></div></div>
+<p class="n">FCFF = EBIT less tax on EBIT, plus depreciation, less capex, plus change in working capital. Net debt includes working-capital borrowings and, under Ind AS, lease liabilities. Other income is excluded from FCFF. Exit-multiple TV is discounted at year-end.</p></section>
+<section id="s4"><h2>Scenario comparison</h2><div class="w" id="scT"></div>
+<div class="g2" style="margin-top:16px"><div class="ch"><h3>Valuation range (EV, Rs Cr): football field</h3><div id="cF"></div></div><div class="ch"><h3>What moves EV most (change from current case, Rs Cr)</h3><div id="cT"></div></div></div></section>
+<section id="s5"><h2>Budget vs actual</h2>
+<div class="row"><label>Month<select id="bM"></select></label><label>View<select id="bV"><option>YTD</option><option>Month</option></select></label></div>
+<div class="g2"><div class="w"><table id="bT"></table></div><div class="ch"><h3>Variance by line, selected view (positive = favourable)</h3><div id="cV"></div></div></div>
+<h2>Rolling forecast (YTD actual + remaining budget)</h2><div class="w" id="bF"></div>
+<div class="g2" style="margin-top:16px"><div class="ch"><h3>Monthly revenue</h3><div id="cR"></div></div><div class="ch"><h3>Monthly EBITDA</h3><div id="cE"></div></div></div>
+<p class="lg"><i style="background:#9fb3c8"></i>Budget<i style="background:#0e7c7b"></i>Actual</p>
+<h2>Actuals</h2><div class="w"><table id="aA"></table></div>
+<p class="n">Paste actuals as lines like <code>rev,85.7,82.3,...</code> (keys rev, cogs, emp, oth; up to 12 values):</p><textarea id="tA" placeholder="rev,85.7,82.3,92.3"></textarea><p><button class="a" id="bA">Import actuals</button></p></section>
+<section id="s6"><h2>Competitor benchmarking</h2><div class="row"><label>Metric<select id="mS"></select></label></div>
+<div class="ch"><h3 id="mH"></h3><div id="cB"></div></div><h2>Peer table</h2><div class="w" id="pT"></div>
+<p class="n">Peer data is illustrative. Paste your own peers as <code>name,revenue,growth%,gross%,ebitda%,pat%,roce%,netdebt/ebitda,ev/ebitda,pe,debtor days</code>, one per line (at least 3). Use consistent definitions across peers (EBITDA, ROCE, net debt, and Ind AS 116 treatment).</p><textarea id="tP"></textarea><p><button class="a" id="bP">Import peers</button></p></section>
+</main>
+<script>
+const $=s=>document.querySelector(s),Y=['FY2025A','FY2026E','FY2027E','FY2028E','FY2029E','FY2030E'];
+const fm=(v,d=1)=>{if(v==null||!isFinite(v))return'-';const s=Math.abs(v).toLocaleString('en-IN',{minimumFractionDigits:d,maximumFractionDigits:d});return Math.round(v*10**d)<0?'('+s+')':s},pc=v=>fm(v*100)+'%',xm=v=>fm(v,2)+'x',f0=v=>fm(v,0),f2=v=>fm(v,2);
+const OPEN={rev:1000,cogs:620,emp:120,oth:100};
+const A={gB:[12,12,11,10,9],gU:[16,16,15,13,12],gD:[6,6,6,5,5],gm:[38.5,39,39.5,40,40],emp:[11.8,11.6,11.4,11.2,11],oth:[9.9,9.8,9.7,9.6,9.5],oi:[.5,.5,.5,.5,.5],dep:[11.5,11.5,11.5,11.5,11.5],tdep:[15,15,15,15,15],capex:[6,5.5,5,5,5],dd:[45,45,45,45,45],id:[60,59,58,57,56],cd:[50,51,52,52,52],oca:[3,3,3,3,3],ocl:[2.5,2.5,2.5,2.5,2.5],kd:[9.5,9.5,9.5,9.5,9.5],kw:[10.5,10.5,10.5,10.5,10.5],kc:[4,4,4,4,4],kl:[9,9,9,9,9],rent:[10,10,10,10,10],tax:[25.17,25.17,25.17,25.17,25.17],rep:[25,25,25,25,25],pay:[20,20,20,20,20]};
+const AL=[['gB','Revenue growth - Base (%)'],['gU','Revenue growth - Upside (%)'],['gD','Revenue growth - Downside (%)'],['gm','Gross margin, base (%)'],['emp','Employee cost (% of revenue)'],['oth','Other expenses incl. lease rent (% of revenue)'],['oi','Other income (% of revenue)'],['dep','Book depreciation (% of opening net PPE)'],['tdep','Tax depreciation (% of opening net PPE)'],['capex','Capex (% of revenue)'],['dd','Debtor days'],['id','Inventory days (on COGS)'],['cd','Creditor days (on COGS)'],['oca','Other current assets (% of revenue)'],['ocl','Other current liabilities (% of revenue)'],['kd','Interest on term loan (%)'],['kw','Interest on working-capital borrowings (%)'],['kc','Interest on cash (%)'],['kl','Lease discount rate, Ind AS 116 (%)'],['rent','Lease rent (Rs Cr)'],['tax','Tax rate (%)'],['rep','Term loan repayment (Rs Cr)'],['pay','Dividend payout (% of PAT)']];
+const S={sc:'Base',fw:'IndAS',adjBase:0,adjUp:1,adjDown:-1.5,gmx:0,minc:40,avg:1,eclAS:.5,eclInd:1.5,rouLife:5,rf:7,erp:5.5,beta:1,wd:25,g:5,exitx:10,mid:1,sh:10};
+const SL=[['adjBase','GM adj. Base (pp)'],['adjUp','GM adj. Upside (pp)'],['adjDown','GM adj. Downside (pp)'],['minc','Minimum cash (Rs Cr)'],['eclAS','Receivable provision, AS (%)'],['eclInd','ECL provision, Ind AS (%)'],['rf','Risk-free (%)'],['erp','Equity risk premium (%)'],['beta','Beta'],['wd','Target debt weight (%)'],['g','Terminal growth (%)'],['exitx','Exit EV/EBITDA (x)'],['sh','Shares (Crore)']];
+const MO=['Apr-26','May-26','Jun-26','Jul-26','Aug-26','Sep-26','Oct-26','Nov-26','Dec-26','Jan-27','Feb-27','Mar-27'],SEAS=[.075,.075,.08,.08,.085,.09,.09,.09,.09,.085,.08,.08];
+const r1=v=>Math.round(v*10)/10,B0={rev:1120,cogs:688.8,emp:132.16,oth:110.88};
+const ACT={rev:[1.02,.98,1.03,.97,1.01,1.04].map((f,i)=>r1(B0.rev*SEAS[i]*f)),cogs:[1.01,.99,1.02,1,1.01,1.03].map((f,i)=>r1(B0.cogs*SEAS[i]*f)),emp:[1.01,1.02,1,1.03,1.01,1.02].map(f=>r1(B0.emp/12*f)),oth:[.98,1.04,1.01,.99,1.05,1.02].map((f,i)=>r1(B0.oth*SEAS[i]*f))};
+for(const k in ACT)while(ACT[k].length<12)ACT[k].push(0);
+let PEERS=[['Peer A',2400,.11,.365,.152,.081,.175,1.4,11.8,19.5,52],['Peer B',1850,.145,.402,.178,.099,.201,.8,14.2,24.6,41],['Peer C',980,.082,.348,.131,.064,.142,2.1,9.6,15.8,58],['Peer D',3100,.098,.375,.16,.088,.183,1.1,12.5,21,47],['Peer E',1320,.129,.39,.159,.085,.164,1.7,11,18.2,55]];
+const MET=[['rev','Revenue (Rs Cr)',f0],['growth','Revenue growth',pc],['gm','Gross margin',pc],['ebitda','EBITDA margin',pc],['pat','PAT margin',pc],['roce','ROCE',pc],['nde','Net debt / EBITDA',xm],['evx','EV / EBITDA',xm],['pe','P/E',xm],['dd','Debtor days',f0]];
+
+function model(a=A,s=S){
+ const gk={Base:'gB',Upside:'gU',Downside:'gD'}[s.sc],adj=(s[{Base:'adjBase',Upside:'adjUp',Downside:'adjDown'}[s.sc]]+(s.gmx||0))/100,ind=s.fw=='IndAS',ROU0=ind?40:0,LL0=ind?40:0;
+ const keys='rev cogs gp emp oth ebitda dep rdep ecl ebit ie iw il ii oi pbt tax def pat cash ar eclp inv oca ppe rou ap ocl tl wc ll dtl sc re capex rep lp div nwc cfo'.split(' '),m={};keys.forEach(k=>m[k]=[]);
+ const yr=(p,i,g)=>{const t=a.tax[i]/100,av=s.avg?.5:0,rev=p.rev*(1+a[gk][i]/100),cogs=rev*(1-a.gm[i]/100-adj),emp=rev*a.emp[i]/100,oth=rev*a.oth[i]/100-(ind?a.rent[i]:0),ebitda=rev-cogs-emp-oth,bd=a.dep[i]/100*p.ppe,rdep=ind?Math.min(p.rou,ROU0/s.rouLife):0,dep=bd+rdep,arg=rev*a.dd[i]/365,eclp=(ind?s.eclInd:s.eclAS)/100*arg,ecl=eclp-p.eclp,ar=arg-eclp,ebit=ebitda-dep-ecl,rep=Math.min(a.rep[i],p.tl),tl=p.tl-rep,
+  ie=a.kd[i]/100*(p.tl*(1-av)+tl*av),iw=a.kw[i]/100*(p.wc*(1-av)+g.wc*av),il=ind?a.kl[i]/100*p.ll:0,ii=a.kc[i]/100*(p.cash*(1-av)+g.cash*av),oi=rev*a.oi[i]/100,pbt=ebit-ie-iw-il+ii+oi,tax=Math.max(0,pbt)*t,def=Math.min(tax,Math.max(0,(a.tdep[i]-a.dep[i])/100*p.ppe*t)),pat=pbt-tax,
+  inv=cogs*a.id[i]/365,ap=cogs*a.cd[i]/365,oca=rev*a.oca[i]/100,ocl=rev*a.ocl[i]/100,capex=rev*a.capex[i]/100,lp=ind?Math.min(p.ll,a.rent[i]-il):0,div=Math.max(0,pat)*a.pay[i]/100,nwc=-(ar-p.ar)-(inv-p.inv)-(oca-p.oca)+(ap-p.ap)+(ocl-p.ocl),cfo=pat+dep+def+nwc,pre=p.cash+cfo-capex-rep-lp-div,need=s.minc-pre,wc=need>0?p.wc+need:Math.max(0,p.wc+need);
+  return{rev,cogs,gp:rev-cogs,emp,oth,ebitda,dep,rdep,ecl,ebit,ie,iw,il,ii,oi,pbt,tax,def,pat,cash:pre+wc-p.wc,ar,eclp,inv,oca,ppe:p.ppe+capex-bd,rou:p.rou-rdep,ap,ocl,tl,wc,ll:p.ll-lp,dtl:p.dtl+def,sc:p.sc,re:p.re+pat-div,capex,rep,lp,div,nwc,cfo}};
+ let p={rev:1000,cogs:620,gp:380,emp:120,oth:100,ebitda:160,dep:40,rdep:0,ecl:0,ebit:120,ie:24,iw:0,il:0,ii:4,oi:0,pbt:100,tax:25.2,def:0,pat:74.8,cash:80,ar:125,eclp:0,inv:100,oca:30,ppe:350,rou:ROU0,ap:85,ocl:25,tl:190,wc:60,ll:LL0,dtl:20,sc:100,re:205,capex:0,rep:0,lp:0,div:0,nwc:0,cfo:0};
+ keys.forEach(k=>m[k][0]=p[k]);
+ for(let i=0;i<5;i++){let g={cash:p.cash,wc:p.wc},c;for(let it=0;it<(s.avg?8:1);it++){c=yr(p,i,g);g={cash:c.cash,wc:c.wc}}keys.forEach(k=>m[k][i+1]=c[k]);p=c}
+ const Z=f=>Array.from({length:6},(_,i)=>f(i));
+ m.fin=Z(i=>m.ie[i]+m.iw[i]+m.il[i]);m.cm=Z(i=>Math.min(m.tl[i],a.rep[Math.min(i,4)]));m.ca=Z(i=>m.cash[i]+m.ar[i]+m.inv[i]+m.oca[i]);m.fa=Z(i=>m.ppe[i]+m.rou[i]);
+ m.cl=Z(i=>m.ap[i]+m.ocl[i]+m.cm[i]+m.wc[i]);m.tnw=Z(i=>m.sc[i]+m.re[i]);m.ntl=Z(i=>m.tl[i]-m.cm[i]+m.ll[i]+m.dtl[i]);m.tol=Z(i=>m.cl[i]+m.ntl[i]);m.ta=Z(i=>m.ca[i]+m.fa[i]);m.chk=Z(i=>m.ta[i]-m.tol[i]-m.tnw[i]);
+ const ke=s.rf/100+s.beta*s.erp/100,w=(1-s.wd/100)*ke+s.wd/100*a.kd[0]/100*(1-a.tax[0]/100),u=[];
+ for(let i=1;i<6;i++)u.push(m.ebit[i]-Math.max(0,m.ebit[i])*a.tax[i-1]/100+m.dep[i]-m.capex[i]+m.nwc[i]);
+ const pv=(w)=>u.reduce((x,v,i)=>x+v/(1+w)**(i+1-.5*s.mid),0);
+ m.ke=ke;m.w=w;m.u=u;m.ev=(w,g)=>w<=g?NaN:pv(w)+u[4]*(1+g)/(w-g)/(1+w)**(5-.5*s.mid);m.evx=w=>pv(w)+m.ebitda[5]*s.exitx/(1+w)**5;
+ m.EV=m.ev(w,s.g/100);m.nd=m.tl[0]+m.wc[0]+m.ll[0]-m.cash[0];m.eq=m.EV-m.nd;m.ps=m.eq/s.sh;
+ m.dscr=Z(i=>(m.pat[i]+m.dep[i]+m.ie[i])/(m.ie[i]+(i?m.rep[i]:a.rep[0])));
+ return m}
+
+function tbl(head,rows,corner=''){return'<table><thead><tr><th>'+corner+'</th>'+head.map(h=>'<th>'+h+'</th>').join('')+'</tr></thead><tbody>'+rows.map(r=>r.length==1?`<tr class="h"><td colspan="${head.length+1}">${r[0]}</td></tr>`:'<tr class="'+(r[3]?'b':'')+'"><td>'+r[0]+'</td>'+r[1].map(v=>'<td class="'+(r[4]&&v!=null&&isFinite(v)?(r[4](v)?'good':'bad'):'')+'">'+(v==null?'':r[2](v))+'</td>').join('')+'</tr>').join('')+'</tbody></table>'}
+function bars(id,cats,ser,col,f){const W=640,H=210,L=46,Bm=26,T=14,n=cats.length,k=ser.length;let mx=Math.max(0,...ser.flat()),mn=Math.min(0,...ser.flat());const r=(mx-mn)||1;mx+=r*.12;if(mn<0)mn-=r*.12;const y=v=>T+(H-T-Bm)*(mx-v)/(mx-mn),gw=(W-L)/n,bw=gw*.7/k;let s=`<svg viewBox="0 0 ${W} ${H}" role="img">`;
+ for(let t=0;t<=4;t++){const v=mn+(mx-mn)*t/4;s+=`<line x1="${L}" x2="${W}" y1="${y(v)}" y2="${y(v)}" stroke="#e3e8ee"/><text x="${L-6}" y="${y(v)+3}" text-anchor="end">${f(v)}</text>`}
+ ser.forEach((a,j)=>a.forEach((v,i)=>{const x=L+gw*i+gw*.15+bw*j;s+=`<rect x="${x}" y="${Math.min(y(v),y(0))}" width="${bw}" height="${Math.max(.5,Math.abs(y(v)-y(0)))}" fill="${col(j,i,v)}"/>`;if(k==1)s+=`<text x="${x+bw/2}" y="${v<0?y(v)+11:y(v)-4}" text-anchor="middle">${f(v)}</text>`}));
+ cats.forEach((c,i)=>s+=`<text x="${L+gw*(i+.5)}" y="${H-8}" text-anchor="middle">${c}</text>`);$(id).innerHTML=s+'</svg>'}
+function hrange(id,rows,mark,labW=150){const W=640,H=rows.length*38+24,L=labW;const lo=Math.min(...rows.map(r=>r[1])),hi=Math.max(...rows.map(r=>r[2])),a=lo*.9,b=hi*1.05,x=v=>L+(W-L-10)*(v-a)/(b-a);
+ let s=`<svg viewBox="0 0 ${W} ${H}" role="img">`;rows.forEach((r,i)=>{const y=12+i*38;s+=`<text x="${L-8}" y="${y+14}" text-anchor="end">${r[0]}</text><rect x="${x(r[1])}" y="${y}" width="${Math.max(2,x(r[2])-x(r[1]))}" height="20" fill="#6b86a8"/><text x="${x(r[1])-4}" y="${y+14}" text-anchor="end">${f0(r[1])}</text><text x="${x(r[2])+4}" y="${y+14}">${f0(r[2])}</text>`;if(r[3])s+=`<line x1="${x(r[3])}" x2="${x(r[3])}" y1="${y-2}" y2="${y+22}" stroke="#d98e04" stroke-width="2"/>`});
+ if(mark)s+=`<line x1="${x(mark)}" x2="${x(mark)}" y1="4" y2="${H-8}" stroke="#0e7c7b" stroke-dasharray="4 3"/><text x="${x(mark)+4}" y="${H-2}">Current EV ${f0(mark)}</text>`;$(id).innerHTML=s+'</svg>'}
+function tornado(id,rows,base){const W=640,Hh=rows.length*34+16,L=170,cx=(W+L)/2,mx=Math.max(...rows.flatMap(r=>[Math.abs(r[1]-base),Math.abs(r[2]-base)]))||1,sc=(W-L-60)/2/mx;let s=`<svg viewBox="0 0 ${W} ${Hh}" role="img"><line x1="${cx}" x2="${cx}" y1="0" y2="${Hh}" stroke="#8a95a5"/>`;
+ rows.forEach((r,i)=>{const y=8+i*34,d1=r[1]-base,d2=r[2]-base;s+=`<text x="${L-8}" y="${y+14}" text-anchor="end">${r[0]}</text>`;[[d1,'#b3261e'],[d2,'#1b7f3b']].forEach(([d,c])=>{const w=Math.abs(d)*sc;s+=`<rect x="${d<0?cx-w:cx}" y="${y}" width="${Math.max(1,w)}" height="20" fill="${c}"/><text x="${d<0?cx-w-4:cx+w+4}" y="${y+14}" text-anchor="${d<0?'end':'start'}">${fm(d,0)}</text>`})});$('#cT').innerHTML=s+'</svg>'}
+
+function build(){
+ $('#nav').innerHTML=['Assumptions','Statements','CMA','DCF','Scenarios','BVA dashboard','Benchmark'].map((t,i)=>`<button role="tab" aria-selected="${i==0}" data-t="${i}">${t}</button>`).join('');
+ $('#nav').onclick=e=>{const t=e.target.dataset.t;if(t==null)return;document.querySelectorAll('nav button').forEach(b=>b.setAttribute('aria-selected',b.dataset.t==t));document.querySelectorAll('section').forEach((s,i)=>s.classList.toggle('on',i==t))};
+ $('#s0').classList.add('on');
+ $('#aT').innerHTML='<thead><tr><th></th>'+Y.slice(1).map(y=>'<th>'+y+'</th>').join('')+'</tr></thead><tbody>'+AL.map(([k,l])=>`<tr><td>${l}</td>${A[k].map((v,i)=>`<td><input type="number" step="0.1" value="${v}" data-k="${k}" data-i="${i}" aria-label="${l} ${Y[i+1]}"></td>`).join('')}</tr>`).join('')+'</tbody>';
+ $('#vI').innerHTML=SL.map(([k,l])=>`<label>${l}<input type="number" step="0.1" value="${S[k]}" data-s="${k}"></label>`).join('')+`<label>Mid-year convention<select data-s="mid"><option value="1">On</option><option value="0">Off</option></select></label><label>Average-balance interest<select data-s="avg"><option value="1">On</option><option value="0">Off</option></select></label>`;
+ $('#bM').innerHTML=MO.map((m,i)=>`<option value="${i}"${i==5?' selected':''}>${m}</option>`).join('');
+ $('#aA').innerHTML='<thead><tr><th>Rs Cr</th>'+MO.map(m=>'<th>'+m+'</th>').join('')+'</tr></thead><tbody>'+[['rev','Revenue'],['cogs','COGS'],['emp','Employee cost'],['oth','Other expenses']].map(([k,l])=>`<tr><td>${l}</td>${ACT[k].map((v,i)=>`<td><input type="number" step="0.1" value="${v||''}" data-a="${k}" data-i="${i}" aria-label="${l} ${MO[i]}"></td>`).join('')}</tr>`).join('')+'</tbody>';
+ $('#mS').innerHTML=MET.map(([k,l])=>`<option value="${k}"${k=='ebitda'?' selected':''}>${l}</option>`).join('');
+ $('#sc').value=S.sc;$('#fw').value=S.fw;document.querySelectorAll('select[data-s]').forEach(e=>e.value=S[e.dataset.s]);
+ document.addEventListener('input',e=>{if(e.target.tagName=='SELECT')return;const d=e.target.dataset;if(d.k)A[d.k][+d.i]=+e.target.value||0;else if(d.s)S[d.s]=+e.target.value||0;else if(d.a)ACT[d.a][+d.i]=+e.target.value||0;else return;render()});
+ document.addEventListener('change',e=>{const t=e.target;if(t.tagName!='SELECT')return;if(t.id=='sc')S.sc=t.value;else if(t.id=='fw')S.fw=t.value;else if(t.dataset.s)S[t.dataset.s]=+t.value;render()});
+ $('#bSave').onclick=()=>{try{localStorage.setItem('ifm2',JSON.stringify({A,S,ACT,PEERS}));$('#bSave').textContent='Saved'}catch(x){$('#bSave').textContent='Not saved'}setTimeout(()=>$('#bSave').textContent='Save',1500)};
+ $('#bReset').onclick=()=>{try{localStorage.removeItem('ifm2')}catch(x){}location.reload()};
+ $('#bA').onclick=()=>{$('#tA').value.split('\n').forEach(l=>{const t=l.split(',').map(x=>x.trim());if(ACT[t[0]])t.slice(1,13).forEach((v,i)=>ACT[t[0]][i]=+v||0)});build2();render()};
+ $('#bP').onclick=()=>{const r=$('#tP').value.split('\n').map(l=>l.split(',').map(x=>x.trim())).filter(t=>t.length>=11&&t.slice(1).every(v=>isFinite(v)));if(r.length>=3){PEERS=r.map(t=>[t[0],...t.slice(1).map(Number)]);PEERS.forEach(p=>{for(const j of [2,3,4,5,6])p[j]/=100})}render()};
+ ['bV','bM','mS'].forEach(i=>$('#'+i).onchange=render)}
+function build2(){document.querySelectorAll('input[data-a]').forEach(e=>e.value=ACT[e.dataset.a][+e.dataset.i]||'')}
+
+function render(){
+ const m=model(),ind=S.fw=='IndAS',H=Y,Y5=H.slice(1),T=(l,a,f=fm,b=0,t)=>[l,a,f,b,t],n0=a=>[null,...a.slice(1)],H1=l=>[l],g=a=>a.map((v,i)=>i?v/a[i-1]-1:null),rt=(a,b)=>a.map((v,i)=>v/b[i]);
+ $('#kEV').textContent=f0(m.EV);$('#kPS').textContent=fm(m.ps);$('#kW').textContent=pc(m.w);$('#kD').textContent=xm(Math.min(...m.dscr.slice(1)));$('#kC').textContent=m.chk.every(v=>Math.abs(v)<.01)?'Balanced':'Check';
+ const dv=ind?'Division II, Ind AS':'Division I, AS';
+ $('#tIS').textContent=`Statement of profit and loss (Schedule III, ${dv})`;$('#tBS').textContent=`Balance sheet (Schedule III, ${dv})`;$('#tCF').textContent=`Cash flow statement (${ind?'Ind AS 7':'AS 3'}, indirect method)`;
+ const oex=m.oth.map((v,i)=>v+m.ecl[i]),inc=m.ii.map((v,i)=>v+m.oi[i]),texp=m.cogs.map((v,i)=>v+m.emp[i]+m.dep[i]+m.fin[i]+oex[i]);
+ $('#isT').innerHTML=tbl(H,[T('Revenue from operations',m.rev,fm,1),T('Other income',inc),T('Total income',m.rev.map((v,i)=>v+inc[i]),fm,1),H1('Expenses'),T('Cost of goods sold',m.cogs),T('Employee benefit expense',m.emp),T('Depreciation and amortisation'+(ind?' (incl. right-of-use)':''),m.dep),T('Finance costs'+(ind?' (incl. lease interest)':''),m.fin),T('Other expenses'+(ind?' (incl. expected credit loss)':' (incl. provision for doubtful debts)'),oex),T('Total expenses',texp,fm,1),T('Profit before tax',m.pbt,fm,1),T('Current tax',m.tax.map((v,i)=>v-m.def[i])),T('Deferred tax',m.def),T('Profit for the year',m.pat,fm,1),H1('Analysis'),T('EBITDA',m.ebitda,fm,1),T('Revenue growth',g(m.rev),pc),T('EBITDA margin',rt(m.ebitda,m.rev),pc),T('PAT margin',rt(m.pat,m.rev),pc)],'Rs Crore');
+ $('#bsT').innerHTML=tbl(H,[H1('Equity and liabilities'),T('Share capital',m.sc),T('Other equity (reserves and surplus)',m.re),T("Total shareholders' funds",m.tnw,fm,1),T('Long-term borrowings',m.tl.map((v,i)=>v-m.cm[i])),T('Lease liabilities (Ind AS 116)',m.ll),T('Deferred tax liabilities (net)',m.dtl),T('Total non-current liabilities',m.ntl,fm,1),T('Short-term borrowings (working capital)',m.wc),T('Current maturities of long-term borrowings',m.cm),T('Trade payables',m.ap),T('Other current liabilities',m.ocl),T('Total current liabilities',m.cl,fm,1),T('Total equity and liabilities',m.tnw.map((v,i)=>v+m.ntl[i]+m.cl[i]),fm,1),H1('Assets'),T('Property, plant and equipment',m.ppe),T('Right-of-use assets (Ind AS 116)',m.rou),T('Total non-current assets',m.fa,fm,1),T('Inventories',m.inv),T('Trade receivables (net of provision)',m.ar),T('Cash and cash equivalents',m.cash),T('Other current assets',m.oca),T('Total current assets',m.ca,fm,1),T('Total assets',m.ta,fm,1),T('Balance check (0)',m.chk.map(v=>Math.round(v*1e3)/1e3),f2)],'Rs Crore');
+ const cashtax=m.tax.map((v,i)=>v-m.def[i]),dwc=m.wc.map((v,i)=>i?v-m.wc[i-1]:0),cfo=m.ebit.map((v,i)=>v+m.dep[i]+m.nwc[i]-cashtax[i]),ncf=m.cash.map((v,i)=>i?v-m.cash[i-1]:0);
+ $('#cfT').innerHTML=tbl(H,[H1('A. Operating activities'),T('Profit before tax',n0(m.pbt)),T('Add: depreciation and amortisation',n0(m.dep)),T('Add: finance costs',n0(m.fin)),T('Less: interest and other income',n0(inc.map(v=>-v))),T('Operating profit before working capital changes',n0(m.ebit.map((v,i)=>v+m.dep[i])),fm,1),T('Working capital changes',n0(m.nwc)),T('Direct taxes paid',n0(cashtax.map(v=>-v))),T('Net cash from operating activities',n0(cfo),fm,1),H1('B. Investing activities'),T('Purchase of property, plant and equipment',n0(m.capex.map(v=>-v))),T('Interest and other income received',n0(inc)),T('Net cash from investing activities',n0(inc.map((v,i)=>v-m.capex[i])),fm,1),H1('C. Financing activities'),T('Repayment of long-term borrowings',n0(m.rep.map(v=>-v))),T('Net drawdown / (repayment) of working capital borrowings',n0(dwc)),T('Interest paid',n0(m.fin.map(v=>-v))),T('Principal paid on lease liabilities',n0(m.lp.map(v=>-v))),T('Dividends paid',n0(m.div.map(v=>-v))),T('Net cash from financing activities',n0(m.rep.map((v,i)=>-v+dwc[i]-m.fin[i]-m.lp[i]-m.div[i])),fm,1),T('Net change in cash',n0(ncf),fm,1),T('Opening cash',n0(m.cash.map((v,i)=>i?m.cash[i-1]:0))),T('Closing cash',n0(m.cash),fm,1)],'Rs Crore');
+ cma(m,ind,cfo,dwc);
+ const df=Y5.map((_,i)=>1/(1+m.w)**(i+1-.5*S.mid));
+ $('#dT').innerHTML=tbl(Y5,[T('Revenue',m.rev.slice(1)),T('EBITDA',m.ebitda.slice(1)),T('EBIT (after credit loss provision)',m.ebit.slice(1),fm,1),T('Less: tax on EBIT',Y5.map((_,i)=>-Math.max(0,m.ebit[i+1])*A.tax[i]/100)),T('Add: depreciation',m.dep.slice(1)),T('Less: capex',m.capex.slice(1).map(v=>-v)),T('Change in working capital',m.nwc.slice(1)),T('Unlevered free cash flow',m.u,fm,1),T('Discount factor',df,v=>fm(v,3)),T('Present value',m.u.map((v,i)=>v*df[i]),fm,1)],'Rs Crore');
+ const tv=m.u[4]*(1+S.g/100)/(m.w-S.g/100),pvtv=tv*df[4],sp=m.EV-pvtv,evx=m.evx(m.w),V=(l,v,b)=>`<tr class="${b?'b':''}"><td>${l}</td><td>${v}</td></tr>`;
+ $('#vT').innerHTML='<table><tbody>'+V('Cost of equity (CAPM)',pc(m.ke))+V('WACC',pc(m.w),1)+V('Sum of PV of FCFF',fm(sp))+V('Terminal value, Gordon growth',fm(tv))+V('PV of terminal value',fm(pvtv))+V('Enterprise value (Gordon)',fm(m.EV),1)+V('Less: net debt'+(ind?' incl. leases':'')+' (FY2025A)',fm(m.nd))+V('Equity value',fm(m.eq),1)+V('Equity value per share (Rs)',fm(m.ps))+V('Terminal value share of EV',pc(pvtv/m.EV))+V('Implied EV / FY2026E EBITDA',xm(m.EV/m.ebitda[1]))+V('Enterprise value (exit multiple '+fm(S.exitx)+'x)',fm(evx),1)+V('Implied perpetual growth in exit TV',pc((m.ebitda[5]*S.exitx*m.w-m.u[4])/(m.ebitda[5]*S.exitx+m.u[4])))+'</tbody></table>';
+ const ws=[-.02,-.01,0,.01,.02].map(d=>m.w+d),gs=[-.01,-.005,0,.005,.01].map(d=>S.g/100+d);
+ $('#sT').innerHTML='<table><thead><tr><th>WACC \\ g</th>'+gs.map(x=>'<th>'+pc(x)+'</th>').join('')+'</tr></thead><tbody>'+ws.map((w,i)=>`<tr><td><b>${pc(w)}</b></td>${gs.map((x,j)=>`<td class="${i==2&&j==2?'hl':''}">${f0(m.ev(w,x))}</td>`).join('')}</tr>`).join('')+'</tbody></table>';
+ scen(m);bva(m);bench(m)}
+
+function cma(m,ind,cfo,dwc){
+ const H=Y,T=(l,a,f=fm,b=0,t)=>[l,a,f,b,t],H1=l=>[l],rt=(a,b)=>a.map((v,i)=>v/b[i]),Zs=f=>Array.from({length:6},(_,i)=>f(i));
+ const cogsT=Zs(i=>m.cogs[i]+m.emp[i]+m.oth[i]+m.ecl[i]+m.dep[i]),pbit=Zs(i=>m.rev[i]-cogsT[i]),opa=Zs(i=>pbit[i]-m.fin[i]),nonop=Zs(i=>m.ii[i]+m.oi[i]);
+ $('#f2').innerHTML=tbl(H,[T('Net sales (net of GST)',m.rev,fm,1),T('% growth',m.rev.map((v,i)=>i?v/m.rev[i-1]-1:null),pc),H1('Cost of sales'),T('Raw materials / direct costs',m.cogs),T('Employee cost',m.emp),T('Other expenses and provisions'+(ind?' (net of lease rent)':''),Zs(i=>m.oth[i]+m.ecl[i])),T('Depreciation (incl. right-of-use)',m.dep),T('Total cost of sales',cogsT,fm,1),T('Operating profit before interest (PBIT)',pbit,fm,1),T('Interest and finance charges',m.fin),T('Operating profit after interest',opa,fm,1),T('Non-operating income (interest and other)',nonop),T('Profit before tax',m.pbt,fm,1),T('Provision for tax (current + deferred)',m.tax),T('Net profit after tax (PAT)',m.pat,fm,1),T('Equity dividend paid',m.div),T('Retained profit',m.pat.map((v,i)=>i?v-m.div[i]:null)),T('Cash accruals (PAT + depreciation)',Zs(i=>m.pat[i]+m.dep[i]),fm,1),T('PBDIT',Zs(i=>pbit[i]+m.dep[i]),fm),T('Operating margin (PBIT / sales)',rt(pbit,m.rev),pc),T('Net profit margin',rt(m.pat,m.rev),pc)],'Rs Crore');
+ $('#f3').innerHTML=tbl(H,[H1('Liabilities - current'),T('Short-term bank borrowings (working capital)',m.wc),T('Sundry creditors (trade)',m.ap),T('Current maturities of term loans',m.cm),T('Other current liabilities and provisions',m.ocl),T('Total current liabilities',m.cl,fm,1),H1('Term liabilities'),T('Term loans (non-current portion)',m.tl.map((v,i)=>v-m.cm[i])),T('Lease liabilities (Ind AS 116)',m.ll),T('Deferred tax liability',m.dtl),T('Total term liabilities',m.ntl,fm,1),T('Total outside liabilities (TOL)',m.tol,fm,1),H1('Net worth'),T('Share capital',m.sc),T('Reserves and surplus',m.re),T('Tangible net worth (TNW)',m.tnw,fm,1),T('Total liabilities',m.tol.map((v,i)=>v+m.tnw[i]),fm,1),H1('Assets - current'),T('Cash and bank balances',m.cash),T('Receivables (net)',m.ar),T('Inventory',m.inv),T('Other current assets',m.oca),T('Total current assets',m.ca,fm,1),H1('Fixed assets'),T('Net block (PPE'+(ind?' + ROU':'')+')',m.fa,fm,1),T('Total assets',m.ta,fm,1),T('Check (0)',m.chk.map(v=>Math.round(v*1e3)/1e3),f2)],'Rs Crore');
+ const clnb=Zs(i=>m.ap[i]+m.ocl[i]+m.cm[i]),wcg=Zs(i=>m.ca[i]-clnb[i]),nwc=Zs(i=>m.ca[i]-m.cl[i]),m1=wcg.map(v=>.75*v),m2=Zs(i=>wcg[i]-.25*m.ca[i]);
+ $('#f4').innerHTML=tbl(H,[H1('Current assets'),T('Cash and bank',m.cash),T('Receivables',m.ar),T('Inventory',m.inv),T('Other current assets',m.oca),T('Total current assets (A)',m.ca,fm,1),H1('Current liabilities other than bank borrowings'),T('Sundry creditors',m.ap),T('Other current liabilities',m.ocl),T('Current maturities of term loans',m.cm),T('Total (B)',clnb,fm,1),T('Working capital gap (A - B)',wcg,fm,1),T('Net working capital (CA - total CL)',nwc,fm,1),T('Current ratio',rt(m.ca,m.cl),xm,0,v=>v>=1.33),H1('Maximum permissible bank finance (MPBF)'),T('Method I: 75% of working capital gap',m1),T('Method II: working capital gap less 25% of current assets',m2),T('Projected bank borrowings (CC / working capital)',m.wc,fm,1),T('Excess / (headroom) vs Method II',Zs(i=>m.wc[i]-m2[i]),fm,0,v=>v<=0),T('Turnover method (Nayak): bank share, 20% of sales',m.rev.map(v=>.2*v)),T('Turnover method: borrower margin, 5% of sales',m.rev.map(v=>.05*v))],'Rs Crore');
+ const lts=Zs(i=>m.pat[i]+m.dep[i]+m.def[i]),ltu=Zs(i=>m.capex[i]+m.rep[i]+m.lp[i]+m.div[i]),sur=Zs(i=>lts[i]-ltu[i]);
+ const dca=Zs(i=>i?m.ca[i]-m.ca[i-1]:null),dcl=Zs(i=>i?m.ap[i]+m.ocl[i]-m.ap[i-1]-m.ocl[i-1]:null);
+ $('#f6').innerHTML=tbl(H,[H1('Long-term sources'),T('Net profit after tax',m.pat.map((v,i)=>i?v:null)),T('Depreciation',m.dep.map((v,i)=>i?v:null)),T('Deferred tax',m.def.map((v,i)=>i?v:null)),T('Total long-term sources',lts.map((v,i)=>i?v:null),fm,1),H1('Long-term uses'),T('Capital expenditure',m.capex.map((v,i)=>i?v:null)),T('Term loan repayment',m.rep.map((v,i)=>i?v:null)),T('Lease principal',m.lp.map((v,i)=>i?v:null)),T('Dividends',m.div.map((v,i)=>i?v:null)),T('Total long-term uses',ltu.map((v,i)=>i?v:null),fm,1),T('Net surplus / (deficit) in long-term funds',sur.map((v,i)=>i?v:null),fm,1),H1('Short-term position'),T('Increase / (decrease) in current assets',dca),T('Increase / (decrease) in creditors and other CL',dcl),T('Increase in working capital gap',Zs(i=>i?dca[i]-dcl[i]:null),fm,1),T('Increase / (decrease) in bank borrowings',dwc.map((v,i)=>i?v:null)),T('Net surplus + bank borrowing - gap increase (0)',Zs(i=>i?Math.round((sur[i]+dwc[i]-(dca[i]-dcl[i]))*1e3)/1e3:null),f2)],'Rs Crore');
+ const fin=m.fin,pbdit=Zs(i=>m.ebit[i]+m.dep[i]),mon=d=>d/30;
+ $('#rT').innerHTML=tbl(H,[H1('Liquidity'),T('Current ratio (norm 1.33 or more)',rt(m.ca,m.cl),xm,0,v=>v>=1.33),T('Quick ratio (quick assets / CL excl. bank borrowings)',Zs(i=>(m.ca[i]-m.inv[i])/(m.cl[i]-m.wc[i])),xm),T('Net working capital',nwc),H1('Leverage'),T('TOL / TNW (norm 3.0 or less)',rt(m.tol,m.tnw),xm,0,v=>v<=3),T('Total debt / TNW',Zs(i=>(m.tl[i]+m.wc[i]+m.ll[i])/m.tnw[i]),xm),T('Long-term debt / TNW',Zs(i=>(m.tl[i]+m.ll[i])/m.tnw[i]),xm),T('Net debt / EBITDA',Zs(i=>(m.tl[i]+m.wc[i]+m.ll[i]-m.cash[i])/m.ebitda[i]),xm),H1('Coverage'),T('Interest coverage, EBIT / finance cost (norm 2.0 or more)',Zs(i=>m.ebit[i]/fin[i]),xm,0,v=>v>=2),T('PBDIT / interest',Zs(i=>pbdit[i]/fin[i]),xm),T('DSCR, (PAT + dep. + TL interest) / (TL interest + instalment)',m.dscr,xm,0,v=>v>=1.25),T('Fixed asset coverage (net block / term loans)',Zs(i=>m.fa[i]/(m.tl[i]+m.ll[i])),xm),H1('Efficiency (days; CMA uses months = days / 30)'),T('Inventory holding, days',Zs(i=>m.inv[i]/m.cogs[i]*365),f0),T('Receivables, days',Zs(i=>m.ar[i]/m.rev[i]*365),f0),T('Creditors, days',Zs(i=>m.ap[i]/m.cogs[i]*365),f0),T('Operating cycle, days',Zs(i=>(m.inv[i]/m.cogs[i]+m.ar[i]/m.rev[i]-m.ap[i]/m.cogs[i])*365),f0),T('Operating cycle, months',Zs(i=>mon((m.inv[i]/m.cogs[i]+m.ar[i]/m.rev[i]-m.ap[i]/m.cogs[i])*365)),v=>fm(v)),T('Fixed asset turnover',Zs(i=>m.rev[i]/m.fa[i]),xm),T('Total asset turnover (ATR)',Zs(i=>m.rev[i]/m.ta[i]),xm),H1('Profitability'),T('EBITDA margin',rt(m.ebitda,m.rev),pc),T('Net profit margin',rt(m.pat,m.rev),pc),T('ROCE, EBIT / (TNW + debt + leases)',Zs(i=>m.ebit[i]/(m.tnw[i]+m.tl[i]+m.wc[i]+m.ll[i])),pc),T('Return on net worth (PAT / TNW)',rt(m.pat,m.tnw),pc)],'Ratio');
+}
+
+function scen(m){
+ const rows=['Base','Upside','Downside'].map(k=>[k,model(A,{...S,sc:k})]);
+ $('#scT').innerHTML='<table><thead><tr><th></th><th>EV (Rs Cr)</th><th>Equity / share (Rs)</th><th>FY2030E revenue</th><th>FY2030E EBITDA margin</th><th>FY2030E PAT</th><th>Min DSCR</th><th>Peak WC borrowing</th></tr></thead><tbody>'+rows.map(([k,x])=>`<tr class="${k==S.sc?'b hl':''}"><td>${k}${k==S.sc?' (selected)':''}</td><td>${f0(x.EV)}</td><td>${fm(x.ps)}</td><td>${f0(x.rev[5])}</td><td>${pc(x.ebitda[5]/x.rev[5])}</td><td>${f0(x.pat[5])}</td><td class="${Math.min(...x.dscr.slice(1))>=1.25?'good':'bad'}">${xm(Math.min(...x.dscr.slice(1)))}</td><td>${f0(Math.max(...x.wc))}</td></tr>`).join('')+'</tbody></table>';
+ const g=S.g/100,cl=()=>JSON.parse(JSON.stringify(A)),gr=d=>{const a=cl();['gB','gU','gD'].forEach(k=>a[k]=a[k].map(v=>v+d));return model(a,S).EV},dd=d=>{const a=cl();a.dd=a.dd.map(v=>v+d);return model(a,S).EV};
+ const tr=[['WACC +/- 1pp',m.ev(m.w+.01,g),m.ev(m.w-.01,g)],['Terminal growth +/- 1pp',m.ev(m.w,g-.01),m.ev(m.w,g+.01)],['Gross margin +/- 1pp',model(A,{...S,gmx:-1}).EV,model(A,{...S,gmx:1}).EV],['Revenue growth +/- 2pp',gr(-2),gr(2)],['Debtor days +/- 5',dd(5),dd(-5)]].sort((a,b)=>Math.abs(b[2]-b[1])-Math.abs(a[2]-a[1]));
+ tornado('#cT',tr,m.EV);
+ const pe=PEERS.map(p=>p[8]).sort((a,b)=>a-b),pm=pe.length%2?pe[(pe.length-1)/2]:(pe[pe.length/2-1]+pe[pe.length/2])/2,e1=m.ebitda[1];
+ hrange('#cF',[['DCF: Gordon growth',m.ev(m.w+.01,g-.005),m.ev(m.w-.01,g+.005),m.EV],['DCF: exit multiple +/- 1x',m.evx(m.w)-m.ebitda[5]*1/(1+m.w)**5,m.evx(m.w)+m.ebitda[5]*1/(1+m.w)**5,m.evx(m.w)],['Peer EV/EBITDA (low-high)',pe[0]*e1,pe[pe.length-1]*e1,pm*e1]],m.EV)}
+
+function bva(m){
+ const k=+$('#bM').value,ytd=$('#bV').value=='YTD',inr=i=>ytd?i<=k:i==k,sum=a=>a.reduce((s,v,i)=>s+(inr(i)?v:0),0);
+ const bud={rev:SEAS.map(w=>m.rev[1]*w),cogs:SEAS.map(w=>m.cogs[1]*w),emp:SEAS.map(()=>m.emp[1]/12),oth:SEAS.map(w=>m.oth[1]*w)};
+ const der=o=>{const gp=o.rev.map((v,i)=>v?v-o.cogs[i]:0);return{...o,gp,ebitda:gp.map((v,i)=>o.rev[i]?v-o.emp[i]-o.oth[i]:0)}},b=der(bud),a=der(ACT);
+ const L=[['rev','Revenue',1],['cogs','COGS',-1],['gp','Gross profit',1],['emp','Employee cost',-1],['oth','Other expenses',-1],['ebitda','EBITDA',1]],vr=[];
+ let h='<thead><tr><th>Rs Cr</th><th>Budget</th><th>Actual</th><th>Variance</th><th>Var %</th></tr></thead><tbody>';
+ L.forEach(([key,l,t])=>{const B=sum(b[key]),Ac=sum(a[key]),v=(Ac-B)*t;vr.push(v);const c=Ac?(v>=0?'good':'bad'):'';h+=`<tr class="${t==1&&key!='rev'?'b':''}"><td>${l}</td><td>${fm(B)}</td><td>${fm(Ac)}</td><td class="${c}">${fm(v)}</td><td class="${c}">${B?pc(v/Math.abs(B)):'-'}</td></tr>`});
+ const mb=sum(b.ebitda)/sum(b.rev),ma=sum(a.rev)?sum(a.ebitda)/sum(a.rev):0;
+ $('#bT').innerHTML=h+`<tr><td>EBITDA margin</td><td>${pc(mb)}</td><td>${pc(ma)}</td><td class="${ma>=mb?'good':'bad'}">${fm((ma-mb)*100)}pp</td><td></td></tr></tbody>`;
+ bars('#cV',L.map(x=>x[1].replace('Gross profit','GP').replace('Other expenses','Other')),[vr],(j,i,v)=>v<0?'#b3261e':'#1b7f3b',v=>fm(v));
+ const cb=j=>j?'#0e7c7b':'#9fb3c8';bars('#cR',MO.map(x=>x.slice(0,3)),[b.rev,a.rev],cb,f0);bars('#cE',MO.map(x=>x.slice(0,3)),[b.ebitda,a.ebitda],cb,f0);
+ let last=-1;a.rev.forEach((v,i)=>{if(v>0)last=i});const S2=(arr,f)=>arr.reduce((s,v,i)=>s+(f(i)?v:0),0);
+ $('#bF').innerHTML=last<0?'<p class="n" style="padding:8px">Enter actuals to see the rolling forecast.</p>':'<table><thead><tr><th>Through '+MO[last]+'</th><th>FY budget</th><th>YTD actual</th><th>Remaining budget</th><th>FY outlook</th><th>Outlook vs budget</th></tr></thead><tbody>'+[['Revenue','rev'],['EBITDA','ebitda']].map(([l,key])=>{const fb=S2(b[key],()=>1),ya=S2(a[key],i=>i<=last),rb=S2(b[key],i=>i>last),o=ya+rb;return`<tr><td>${l}</td><td>${fm(fb)}</td><td>${fm(ya)}</td><td>${fm(rb)}</td><td>${fm(o)}</td><td class="${o>=fb?'good':'bad'}">${fm(o-fb)} (${pc((o-fb)/fb)})</td></tr>`}).join('')+'</tbody></table>'}
+
+function bench(m){
+ const s=['Subject Co',m.rev[1],m.rev[1]/m.rev[0]-1,m.gp[1]/m.rev[1],m.ebitda[1]/m.rev[1],m.pat[1]/m.rev[1],m.ebit[1]/(m.tnw[1]+m.tl[1]+m.wc[1]+m.ll[1]),(m.tl[1]+m.wc[1]+m.ll[1]-m.cash[1])/m.ebitda[1],m.EV/m.ebitda[1],m.eq/m.pat[1],A.dd[0]],all=[s,...PEERS];
+ const med=i=>{const v=PEERS.map(p=>p[i]).sort((x,y)=>x-y),n=v.length;return n%2?v[(n-1)/2]:(v[n/2-1]+v[n/2])/2},sel=$('#mS').value,i=MET.findIndex(x=>x[0]==sel)+1,M=MET[i-1];
+ $('#mH').textContent=M[1]+' - Subject Co (FY2026E, highlighted) against peers';
+ bars('#cB',all.map(r=>r[0].replace(' Co','')),[all.map(r=>r[i])],(j,k)=>k?'#6b86a8':'#d98e04',M[2]);
+ let h='<table><thead><tr><th></th>'+MET.map(x=>'<th>'+x[1]+'</th>').join('')+'</tr></thead><tbody>';
+ all.forEach((r,ri)=>h+=`<tr class="${ri?'':'b'}"><td>${r[0]}</td>${MET.map((x,j)=>'<td>'+x[2](r[j+1])+'</td>').join('')}</tr>`);
+ h+=`<tr class="b"><td>Peer median</td>${MET.map((x,j)=>'<td>'+x[2](med(j+1))+'</td>').join('')}</tr><tr><td>Subject rank of ${all.length}</td>${MET.map((x,j)=>'<td>'+(1+all.filter(r=>r[j+1]>s[j+1]).length)+'</td>').join('')}</tr></tbody></table>`;
+ $('#pT').innerHTML=h}
+try{const sv=JSON.parse(localStorage.getItem('ifm2')||'null');if(sv){Object.assign(S,sv.S);for(const k in sv.A)A[k]=sv.A[k];for(const k in sv.ACT)ACT[k]=sv.ACT[k];if(sv.PEERS)PEERS=sv.PEERS}}catch(x){}
+build();render();
+</script></body></html>
